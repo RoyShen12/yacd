@@ -8,6 +8,7 @@ interface DataWithId {
 }
 
 export const PersistentKey = 'yacd.closedConns';
+const getPersistentKey = `../yacd-persistent-api/get/${PersistentKey}`;
 
 const setDataToMongo = throttle(
   async <T extends DataWithId[]>(
@@ -43,7 +44,7 @@ function usePersistentConnections<T extends DataWithId[]>(
   React.useEffect(() => {
     const syncMongo = async () => {
       try {
-        const response = await fetch(`../yacd-persistent-api/get/${PersistentKey}`, {
+        const response = await fetch(getPersistentKey, {
           headers: {
             'x-yacd-auth': apiConfig.secret,
           },
@@ -57,6 +58,25 @@ function usePersistentConnections<T extends DataWithId[]>(
       }
     };
     syncMongo();
+  }, []);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(getPersistentKey, {
+        headers: {
+          'x-yacd-auth': apiConfig.secret,
+        },
+      })
+        .then((response) => response.json())
+        .then((data: T) => {
+          data.forEach((d) => serverExistId.current.add(d.id));
+        })
+        .catch();
+    }, 10 * 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const setValue = React.useCallback((value: T | ((val: T) => T)) => {
