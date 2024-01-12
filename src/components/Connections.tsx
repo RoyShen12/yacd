@@ -146,10 +146,6 @@ function renderTableOrPlaceholder(conns: FormattedConn[], closed?: boolean) {
   );
 }
 
-function connQty({ qty }) {
-  return qty > 1000 ? '999+' : qty;
-}
-
 export default function Conn() {
   const apiConfig = useApiConfig();
 
@@ -238,11 +234,11 @@ export default function Conn() {
           <TabList>
             <Tab>
               <span>{t('Active')}</span>
-              <span className={s.connQty}>{connQty({ qty: conns.length })}</span>
+              <span className={s.connQty}>{conns.length}</span>
             </Tab>
             <Tab>
               <span>{t('Closed')}</span>
-              <span className={s.connQty}>{connQty({ qty: closedConns.length })}</span>
+              <span className={s.connQty}>{closedConns.length}</span>
             </Tab>
           </TabList>
           <div className={s.inputWrapper}>

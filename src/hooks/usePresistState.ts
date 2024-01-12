@@ -1,3 +1,4 @@
+import { throttle } from 'lodash-es';
 import React from 'react';
 
 import { useApiConfig } from '$src/store/app';
@@ -7,6 +8,28 @@ interface DataWithId {
 }
 
 export const PersistentKey = 'yacd.closedConns';
+
+const setDataToMongo = throttle(
+  async <T extends DataWithId[]>(
+    secret: string,
+    newValue: T,
+    filter: (v: T[number]) => boolean,
+  ) => {
+    try {
+      await fetch(`../yacd-persistent-api/set/${PersistentKey}`, {
+        method: 'POST',
+        headers: {
+          'x-yacd-auth': secret,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newValue.filter(filter)),
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  1000,
+);
 
 function usePersistentConnections<T extends DataWithId[]>(
   defaultValue: T,
@@ -39,14 +62,7 @@ function usePersistentConnections<T extends DataWithId[]>(
   const setValue = React.useCallback((value: T | ((val: T) => T)) => {
     setStoredValue((prevState) => {
       const newValue = value instanceof Function ? value(prevState) : value;
-      fetch(`../yacd-persistent-api/set/${PersistentKey}`, {
-        method: 'POST',
-        headers: {
-          'x-yacd-auth': apiConfig.secret,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newValue.filter((nv) => !serverExistId.current.has(nv.id))),
-      }).catch((err) => console.log(err));
+      setDataToMongo(apiConfig.secret, newValue, (nv) => !serverExistId.current.has(nv.id));
       return newValue;
     });
   }, []);
