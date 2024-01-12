@@ -21,3 +21,11 @@
 .input:checked + .cnt {
   border-color: #387cec;
 }
+
+.input:focus.no-border + .cnt {
+  border: none;
+}
+
+.input:checked.no-border + .cnt {
+  border: none;
+}

@@ -1,11 +1,12 @@
 import './Connections.css';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pause, Play, X as IconClose } from 'react-feather';
 import { useTranslation } from 'react-i18next';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import { ConnectionItem } from 'src/api/connections';
 
+import usePersistentState from '$src/hooks/usePresistState';
 import { useApiConfig } from '$src/store/app';
 
 import * as connAPI from '../api/connections';
@@ -15,6 +16,7 @@ import ConnectionTable from './ConnectionTable';
 import { MutableConnRefCtx } from './conns/ConnCtx';
 import { ContentHeader } from './ContentHeader';
 import ModalCloseAllConnections from './ModalCloseAllConnections';
+import { Selection2 } from './Selection';
 import { Action, Fab, position as fabPosition } from './shared/Fab';
 import SvgYacd from './SvgYacd';
 
@@ -40,6 +42,7 @@ type FormattedConn = {
   upload: number;
   download: number;
   start: number;
+  duration?: number;
   chains: string;
   rule: string;
   destinationPort: string;
@@ -59,22 +62,45 @@ function hasSubstring(s: string, pat: string) {
   return (s ?? '').toLowerCase().includes(pat.toLowerCase());
 }
 
-function filterConns(conns: FormattedConn[], keyword: string) {
-  return !keyword
-    ? conns
-    : conns.filter((conn) =>
-        [
-          conn.host,
-          conn.sourceIP,
-          conn.sourcePort,
-          conn.destinationIP,
-          conn.chains,
-          conn.rule,
-          conn.type,
-          conn.network,
-          conn.processPath,
-        ].some((field) => hasSubstring(field, keyword)),
-      );
+interface ExtraOption {
+  name: string;
+}
+
+const extraOptions: ExtraOption[] = [{ name: '全部' }, { name: '直连' }, { name: '代理' }];
+
+const OptionComponent = (props: ExtraOption & { checked: boolean }) => {
+  const checkedStyle: React.CSSProperties = props.checked
+    ? { backgroundColor: 'rgb(99,99,99)', borderRadius: 2, padding: '0 8px', marginTop: 1 }
+    : {};
+  return (
+    <div style={checkedStyle}>
+      <span>{props.name}</span>
+    </div>
+  );
+};
+
+function filterConns(conns: FormattedConn[], keyword: string, domesticFilter: number) {
+  return conns
+    .filter((conn) => {
+      if (domesticFilter === 0) return true;
+      else if (domesticFilter === 1) return conn.chains.includes('DIRECT');
+      else return !conn.chains.includes('DIRECT');
+    })
+    .filter((conn) =>
+      !keyword
+        ? true
+        : [
+            conn.host,
+            conn.sourceIP,
+            conn.sourcePort,
+            conn.destinationIP,
+            conn.chains,
+            conn.rule,
+            conn.type,
+            conn.network,
+            conn.processPath,
+          ].some((field) => hasSubstring(field, keyword)),
+    );
 }
 
 function fmtConnItem(
@@ -96,7 +122,7 @@ function fmtConnItem(
     id,
     upload,
     download,
-    start: now - new Date(start).valueOf(),
+    start: new Date(start).getTime(),
     chains: chains.reverse().join(' / '),
     rule: !rulePayload ? rule : `${rule}(${rulePayload})`,
     ...metadata,
@@ -110,9 +136,9 @@ function fmtConnItem(
   return ret;
 }
 
-function renderTableOrPlaceholder(conns: FormattedConn[]) {
+function renderTableOrPlaceholder(conns: FormattedConn[], closed?: boolean) {
   return conns.length > 0 ? (
-    <ConnectionTable data={conns} />
+    <ConnectionTable data={conns} closed={closed} />
   ) : (
     <div className={s.placeHolder}>
       <SvgYacd width={200} height={200} c1="var(--color-text)" />
@@ -121,41 +147,65 @@ function renderTableOrPlaceholder(conns: FormattedConn[]) {
 }
 
 function connQty({ qty }) {
-  return qty < 100 ? '' + qty : '99+';
+  return qty;
 }
 
 export default function Conn() {
   const apiConfig = useApiConfig();
+
   const [refContainer, containerHeight] = useRemainingViewPortHeight();
-  const [conns, setConns] = useState([]);
-  const [closedConns, setClosedConns] = useState([]);
+
+  const [conns, setConns] = useState<FormattedConn[]>([]);
+  const [closedConns, setClosedConns] = usePersistentState<FormattedConn[]>('yacd.closedConns', []);
   const [filterKeyword, setFilterKeyword] = useState('');
-  const filteredConns = filterConns(conns, filterKeyword);
-  const filteredClosedConns = filterConns(closedConns, filterKeyword);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const selectedIndexOnChange = useCallback((newV: number) => {
+    setSelectedIndex(Number(newV));
+  }, []);
+
+  const filteredConns = useMemo(
+    () => filterConns(conns, filterKeyword, selectedIndex),
+    [conns, filterKeyword, selectedIndex],
+  );
+  const filteredClosedConns = useMemo(
+    () => filterConns(closedConns, filterKeyword, selectedIndex),
+    [closedConns, filterKeyword, selectedIndex],
+  );
+
   const [isCloseAllModalOpen, setIsCloseAllModalOpen] = useState(false);
+
   const openCloseAllModal = useCallback(() => setIsCloseAllModalOpen(true), []);
   const closeCloseAllModal = useCallback(() => setIsCloseAllModalOpen(false), []);
+
   const [isRefreshPaused, setIsRefreshPaused] = useState(false);
+
   const toggleIsRefreshPaused = useCallback(() => setIsRefreshPaused((x) => !x), []);
   const closeAllConnections = useCallback(() => {
     connAPI.closeAllConnections(apiConfig);
     closeCloseAllModal();
   }, [apiConfig, closeCloseAllModal]);
+
   const prevConnsRef = useRef(conns);
+
   const connCtx = React.useContext(MutableConnRefCtx);
+
   const read = useCallback(
     ({ connections }: { connections: ConnectionItem[] }) => {
       const prevConnsKv = arrayToIdKv(prevConnsRef.current);
       const now = Date.now();
       const x = connections.map((c) => fmtConnItem(c, prevConnsKv, now, connCtx));
-      const closed = [];
+      const closed: FormattedConn[] = [];
       for (const c of prevConnsRef.current) {
         const idx = x.findIndex((conn) => conn.id === c.id);
         if (idx < 0) closed.push(c);
       }
+      closed.forEach((close) => {
+        close.duration = Math.max(0, now - close.start);
+      });
       setClosedConns((prev) => {
         // keep max 100 entries
-        return [...closed, ...prev].slice(0, 101);
+        return [...closed, ...prev] /* .slice(0, 101) */;
       });
       // if previous connections and current connections are both empty
       // arrays, we wont update state to avoid rerender
@@ -166,8 +216,9 @@ export default function Conn() {
         prevConnsRef.current = x;
       }
     },
-    [setConns, isRefreshPaused, connCtx],
+    [setClosedConns, isRefreshPaused, connCtx],
   );
+
   useEffect(() => {
     return connAPI.fetchData(apiConfig, read);
   }, [apiConfig, read]);
@@ -195,6 +246,23 @@ export default function Conn() {
               <span className={s.connQty}>{connQty({ qty: filteredClosedConns.length })}</span>
             </Tab>
           </TabList>
+          <div className={s.inputWrapper}>
+            <Selection2
+              OptionComponent={OptionComponent}
+              optionPropsList={extraOptions}
+              selectedIndex={selectedIndex}
+              onChange={selectedIndexOnChange}
+              noBorder
+            />
+          </div>
+          <div>
+            <button
+              style={{ display: 'inline-block', marginLeft: 10 }}
+              onClick={() => localStorage.setItem('yacd.closedConns', '[]')}
+            >
+              清空已断开
+            </button>
+          </div>
           <div className={s.inputWrapper}>
             <input
               type="text"
@@ -227,7 +295,7 @@ export default function Conn() {
                 </Action>
               </Fab>
             </TabPanel>
-            <TabPanel>{renderTableOrPlaceholder(filteredClosedConns)}</TabPanel>
+            <TabPanel>{renderTableOrPlaceholder(filteredClosedConns, true)}</TabPanel>
           </div>
         </div>
         <ModalCloseAllConnections

@@ -6,8 +6,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import cx from 'clsx';
-import { formatDistance } from 'date-fns';
-import React from 'react';
+import { formatDistanceToNow, formatDuration } from 'date-fns';
+import React, { useMemo } from 'react';
 import { ChevronDown } from 'react-feather';
 
 import prettyBytes from '../misc/pretty-bytes';
@@ -17,7 +17,7 @@ import { MutableConnRefCtx } from './conns/ConnCtx';
 const fullColumns = [
   { header: 'Id', accessorKey: 'id' },
   { header: 'Host', accessorKey: 'host' },
-  { header: 'Process', accessorKey: 'process' },
+  // { header: 'Process', accessorKey: 'process' },
   {
     header: 'DL',
     accessorKey: 'download',
@@ -43,21 +43,47 @@ const fullColumns = [
   {
     header: 'Time',
     accessorKey: 'start',
-    cell: (info: any) => formatDistance(info.getValue(), 0),
+    cell: (info: any) => {
+      const ret = formatDistanceToNow(info.getValue());
+      // console.log(info.getValue(), ret);
+      return ret;
+    },
   },
   { header: 'Source', accessorKey: 'source' },
   { header: 'Destination IP', accessorKey: 'destinationIP' },
   { header: 'Type', accessorKey: 'type' },
+  { header: 'DnsMode', accessorKey: 'dnsMode' },
 ];
 
-const COLUMN_SORT = [{ id: 'id', desc: true }];
+const extraColumns = {
+  header: 'Duration',
+  accessorKey: 'duration',
+  cell: (info: any) => {
+    const ret = formatDuration({ seconds: +(Math.max(0, info.getValue()) / 1000).toFixed(0) });
+    // console.log(info.getValue(), ret);
+    return ret;
+  },
+};
 
-const columns = fullColumns;
-const columnsWithoutProcess = fullColumns.filter((item) => item.accessorKey !== 'process');
+const COLUMN_SORT = [{ id: 'start', desc: true }];
 
-function Table({ data }: { data: any }) {
+function Table({ data, closed }: { data: any; closed?: boolean }) {
   const connCtx = React.useContext(MutableConnRefCtx);
   const [sorting, setSorting] = React.useState<SortingState>(COLUMN_SORT);
+
+  const columns = useMemo(
+    () =>
+      closed
+        ? (() => {
+            const tmp = [...fullColumns];
+            tmp.splice(9, 0, extraColumns);
+            return tmp;
+          })()
+        : fullColumns,
+    [closed],
+  );
+  const columnsWithoutProcess = columns.filter((item) => item.accessorKey !== 'process');
+
   const table = useReactTable({
     columns: connCtx.hasProcessPath ? columns : columnsWithoutProcess,
     data,
@@ -69,6 +95,7 @@ function Table({ data }: { data: any }) {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
   return (
     <table className={s.table}>
       <thead>

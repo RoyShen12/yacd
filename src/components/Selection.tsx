@@ -8,26 +8,29 @@ type SelectionProps = {
   optionPropsList?: any[];
   selectedIndex?: number;
   onChange?: (...args: any[]) => any;
+  noBorder?: boolean;
 };
 
-export function Selection2({
+export const Selection2 = React.memo(function Selection2_inner({
   OptionComponent,
   optionPropsList,
   selectedIndex,
   onChange,
+  noBorder,
 }: SelectionProps) {
-  const inputCx = cx('visually-hidden', s.input);
+  const inputCx = cx('visually-hidden', s.input, noBorder ? s['no-border'] : '');
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
   return (
     <fieldset className={s.fieldset}>
       {optionPropsList.map((props, idx) => {
+        const checked = selectedIndex === idx;
         return (
           <label key={idx}>
             <input
               type="radio"
-              checked={selectedIndex === idx}
+              checked={checked}
               name="selection"
               value={idx}
               aria-labelledby={'traffic chart type ' + idx}
@@ -35,11 +38,11 @@ export function Selection2({
               className={inputCx}
             />
             <div className={s.cnt}>
-              <OptionComponent {...props} />
+              <OptionComponent {...props} checked={checked} />
             </div>
           </label>
         );
       })}
     </fieldset>
   );
-}
+});

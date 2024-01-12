@@ -1,6 +1,6 @@
 {
   "name": "yacd",
-  "version": "0.3.8",
+  "version": "0.3.8-alpha/roy-1",
   "description": "Yet another Clash dashboard",
   "type": "module",
   "prettier": {
