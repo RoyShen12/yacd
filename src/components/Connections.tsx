@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import { ConnectionItem } from 'src/api/connections';
 
-import usePersistentState from '$src/hooks/usePresistState';
+import usePersistentConnections, { PersistentKey } from '$src/hooks/usePresistState';
 import { useApiConfig } from '$src/store/app';
 
 import * as connAPI from '../api/connections';
@@ -156,7 +156,7 @@ export default function Conn() {
   const [refContainer, containerHeight] = useRemainingViewPortHeight();
 
   const [conns, setConns] = useState<FormattedConn[]>([]);
-  const [closedConns, setClosedConns] = usePersistentState<FormattedConn[]>('yacd.closedConns', []);
+  const [closedConns, setClosedConns] = usePersistentConnections<FormattedConn[]>([]);
   const [filterKeyword, setFilterKeyword] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -258,7 +258,7 @@ export default function Conn() {
           <div>
             <button
               style={{ display: 'inline-block', marginLeft: 10 }}
-              onClick={() => localStorage.setItem('yacd.closedConns', '[]')}
+              onClick={() => localStorage.setItem(PersistentKey, '[]')}
             >
               清空已断开
             </button>

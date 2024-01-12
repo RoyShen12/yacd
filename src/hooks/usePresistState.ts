@@ -4,16 +4,17 @@ interface DataWithId {
   id: string | number;
 }
 
-function usePersistentState<T extends DataWithId[]>(
-  key: string,
+export const PersistentKey = 'yacd.closedConns';
+
+function usePersistentConnections<T extends DataWithId[]>(
   defaultValue: T,
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
   const readValue = () => {
     try {
-      const item = window.localStorage.getItem(key);
+      const item = window.localStorage.getItem(PersistentKey);
       return item ? (JSON.parse(item) as T) : defaultValue;
     } catch (error) {
-      console.warn(`Error reading localStorage key “${key}”:`, error);
+      console.warn(`Error reading localStorage key “${PersistentKey}”:`, error);
       return defaultValue;
     }
   };
@@ -26,13 +27,13 @@ function usePersistentState<T extends DataWithId[]>(
       // 保存状态
       setStoredValue(newValue);
       // 保存到 localStorage
-      window.localStorage.setItem(key, JSON.stringify(newValue));
+      window.localStorage.setItem(PersistentKey, JSON.stringify(newValue));
     } catch (error) {
-      console.warn(`Error setting localStorage key “${key}”:`, error);
+      console.warn(`Error setting localStorage key “${PersistentKey}”:`, error);
     }
   };
 
   return [storedValue, setValue];
 }
 
-export default usePersistentState;
+export default usePersistentConnections;
