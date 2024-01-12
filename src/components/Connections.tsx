@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import { ConnectionItem } from 'src/api/connections';
 
-import usePersistentConnections, { PersistentKey } from '$src/hooks/usePresistState';
+import usePersistentConnections from '$src/hooks/usePresistState';
 import { useApiConfig } from '$src/store/app';
 
 import * as connAPI from '../api/connections';
@@ -255,14 +255,14 @@ export default function Conn() {
               noBorder
             />
           </div>
-          <div>
+          {/* <div>
             <button
               style={{ display: 'inline-block', marginLeft: 10 }}
               onClick={() => localStorage.setItem(PersistentKey, '[]')}
             >
               清空已断开
             </button>
-          </div>
+          </div> */}
           <div className={s.inputWrapper}>
             <input
               type="text"
