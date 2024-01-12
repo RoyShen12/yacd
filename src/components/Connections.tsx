@@ -147,7 +147,7 @@ function renderTableOrPlaceholder(conns: FormattedConn[], closed?: boolean) {
 }
 
 function connQty({ qty }) {
-  return qty;
+  return qty > 1000 ? '999+' : qty;
 }
 
 export default function Conn() {
@@ -169,7 +169,7 @@ export default function Conn() {
     [conns, filterKeyword, selectedIndex],
   );
   const filteredClosedConns = useMemo(
-    () => filterConns(closedConns, filterKeyword, selectedIndex),
+    () => filterConns(closedConns, filterKeyword, selectedIndex).slice(0, 999),
     [closedConns, filterKeyword, selectedIndex],
   );
 
@@ -204,7 +204,6 @@ export default function Conn() {
         close.duration = Math.max(0, now - close.start);
       });
       setClosedConns((prev) => {
-        // keep max 100 entries
         return [...closed, ...prev] /* .slice(0, 101) */;
       });
       // if previous connections and current connections are both empty
@@ -239,11 +238,11 @@ export default function Conn() {
           <TabList>
             <Tab>
               <span>{t('Active')}</span>
-              <span className={s.connQty}>{connQty({ qty: filteredConns.length })}</span>
+              <span className={s.connQty}>{connQty({ qty: conns.length })}</span>
             </Tab>
             <Tab>
               <span>{t('Closed')}</span>
-              <span className={s.connQty}>{connQty({ qty: filteredClosedConns.length })}</span>
+              <span className={s.connQty}>{connQty({ qty: closedConns.length })}</span>
             </Tab>
           </TabList>
           <div className={s.inputWrapper}>
