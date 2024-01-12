@@ -34,25 +34,22 @@ function usePersistentConnections<T extends DataWithId[]>(
       }
     };
     syncMongo();
-  }, [apiConfig.secret, defaultValue]);
+  }, []);
 
-  const setValue = React.useCallback(
-    (value: T | ((val: T) => T)) => {
-      setStoredValue((prevState) => {
-        const newValue = value instanceof Function ? value(prevState) : value;
-        fetch(`../yacd-persistent-api/set/${PersistentKey}`, {
-          method: 'POST',
-          headers: {
-            'x-yacd-auth': apiConfig.secret,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newValue.filter((nv) => !serverExistId.current.has(nv.id))),
-        }).catch((err) => console.log(err));
-        return newValue;
-      });
-    },
-    [apiConfig.secret],
-  );
+  const setValue = React.useCallback((value: T | ((val: T) => T)) => {
+    setStoredValue((prevState) => {
+      const newValue = value instanceof Function ? value(prevState) : value;
+      fetch(`../yacd-persistent-api/set/${PersistentKey}`, {
+        method: 'POST',
+        headers: {
+          'x-yacd-auth': apiConfig.secret,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newValue.filter((nv) => !serverExistId.current.has(nv.id))),
+      }).catch((err) => console.log(err));
+      return newValue;
+    });
+  }, []);
 
   return [storedValue, setValue];
 }
