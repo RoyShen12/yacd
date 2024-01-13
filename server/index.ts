@@ -1,7 +1,7 @@
-const express = require('express');
-const { MongoClient } = require('mongodb');
-const helmet = require('helmet');
-const compression = require('compression');
+import compression from 'compression';
+import express from 'express';
+import helmet from 'helmet';
+import { MongoClient } from 'mongodb';
 
 const app = express()
   .use(express.json({ limit: '128mb' }))
@@ -10,6 +10,10 @@ const app = express()
 
 const secret = process.argv[2];
 const mongo = process.argv[3];
+
+interface DataWithId {
+  id: string | number;
+}
 
 const s = Buffer.from(secret, 'hex').toString('utf-8');
 
@@ -51,10 +55,10 @@ app.post('/set/:key', async (req, res) => {
 
   const collection = client.db('openclash').collection('connections');
 
-  let total = req.body.length;
+  // let total = req.body.length;
   // console.log(`req.body.length ${total}`)
   const ret = await Promise.all(
-    req.body.map((d) => collection.updateOne({ id: d.id }, { $setOnInsert: d }, { upsert: true })),
+    (req.body as DataWithId[]).map((d) => collection.updateOne({ id: d.id }, { $setOnInsert: d }, { upsert: true })),
   );
   // const ret = await collection.bulkWrite(
   //   req.body.map(d => ({
