@@ -9,6 +9,7 @@ interface DataWithId {
 
 export const PersistentKey = 'yacd.closedConns';
 const getPersistentKey = `../yacd-persistent-api/get/${PersistentKey}`;
+const setPersistentKey = `../yacd-persistent-api/set/${PersistentKey}`;
 
 const setDataToMongo = throttle(
   async <T extends DataWithId[]>(
@@ -17,14 +18,18 @@ const setDataToMongo = throttle(
     filter: (v: T[number]) => boolean,
   ) => {
     try {
-      await fetch(`../yacd-persistent-api/set/${PersistentKey}`, {
-        method: 'POST',
-        headers: {
-          'x-yacd-auth': secret,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newValue.filter(filter)),
-      });
+      const values = newValue.filter(filter);
+
+      if (values.length) {
+        await fetch(setPersistentKey, {
+          method: 'POST',
+          headers: {
+            'x-yacd-auth': secret,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(values),
+        });
+      }
     } catch (error) {
       console.log(error);
     }
@@ -72,7 +77,7 @@ function usePersistentConnections<T extends DataWithId[]>(
           data.forEach((d) => serverExistId.current.add(d.id));
         })
         .catch();
-    }, 10 * 1000);
+    }, 30 * 1000);
 
     return () => {
       clearInterval(interval);
