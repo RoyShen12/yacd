@@ -14,7 +14,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "pretty": "prettier --log-level warn --write 'src/**/*.{js,scss,ts,tsx,md}'",
-    "fmt": "pnpm lint && pnpm pretty"
+    "fmt": "pnpm lint && pnpm pretty",
+    "publish": "pnpm build && tar czf public.tar.gz public && scp public.tar.gz roy@192.168.50.64:/share/homes/roy/bin/yacd"
   },
   "browserslist": [
     ">0.25%",
