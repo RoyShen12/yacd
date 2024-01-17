@@ -152,7 +152,7 @@ export default function Conn() {
   const [refContainer, containerHeight] = useRemainingViewPortHeight();
 
   const [conns, setConns] = useState<FormattedConn[]>([]);
-  const [closedConns, setClosedConns] = usePersistentConnections<FormattedConn[]>([]);
+  const [closedConns, closedLength, setClosedConns] = usePersistentConnections<FormattedConn[]>([]);
   const [filterKeyword, setFilterKeyword] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -238,7 +238,7 @@ export default function Conn() {
             </Tab>
             <Tab>
               <span>{t('Closed')}</span>
-              <span className={s.connQty}>{closedConns.length}</span>
+              <span className={s.connQty}>{closedLength}</span>
             </Tab>
           </TabList>
           <div className={s.inputWrapper}>

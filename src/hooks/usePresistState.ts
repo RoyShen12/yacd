@@ -37,12 +37,16 @@ const setDataToMongo = throttle(
   1000,
 );
 
+const recordConnectionId = <T extends DataWithId[]>(data: T, set: Set<string | number>) =>
+  data.forEach((d) => set.add(d.id));
+
 function usePersistentConnections<T extends DataWithId[]>(
   defaultValue: T,
-): [T, React.Dispatch<React.SetStateAction<T>>] {
+): [T, number, React.Dispatch<React.SetStateAction<T>>] {
   const apiConfig = useApiConfig();
 
-  const [storedValue, setStoredValue] = React.useState<T>(defaultValue);
+  const [connections, setConnections] = React.useState<T>(defaultValue);
+  const [actualLength, setActualLength] = React.useState(0);
 
   const serverExistId = React.useRef(new Set<string | number>());
 
@@ -54,12 +58,13 @@ function usePersistentConnections<T extends DataWithId[]>(
             'x-yacd-auth': apiConfig.secret,
           },
         });
-        const data = (await response.json()) as T;
-        data.forEach((d) => serverExistId.current.add(d.id));
-        setStoredValue(data);
+        const { data, length } = (await response.json()) as { data: T; length: number };
+        setActualLength(length);
+        recordConnectionId(data, serverExistId.current);
+        setConnections(data);
       } catch (error) {
         console.warn(`Error reading from the MongoDB key “${PersistentKey}”:`, error);
-        setStoredValue(defaultValue);
+        setConnections(defaultValue);
       }
     };
     syncMongo();
@@ -72,9 +77,10 @@ function usePersistentConnections<T extends DataWithId[]>(
           'x-yacd-auth': apiConfig.secret,
         },
       })
-        .then((response) => response.json())
-        .then((data: T) => {
-          data.forEach((d) => serverExistId.current.add(d.id));
+        .then((response) => response.json() as Promise<{ data: T; length: number }>)
+        .then(({ data, length }) => {
+          setActualLength(length);
+          recordConnectionId(data, serverExistId.current);
         })
         .catch();
     }, 30 * 1000);
@@ -85,14 +91,14 @@ function usePersistentConnections<T extends DataWithId[]>(
   }, []);
 
   const setValue = React.useCallback((value: T | ((val: T) => T)) => {
-    setStoredValue((prevState) => {
+    setConnections((prevState) => {
       const newValue = value instanceof Function ? value(prevState) : value;
       setDataToMongo(apiConfig.secret, newValue, (nv) => !serverExistId.current.has(nv.id));
       return newValue;
     });
   }, []);
 
-  return [storedValue, setValue];
+  return [connections, actualLength, setValue];
 }
 
 export default usePersistentConnections;

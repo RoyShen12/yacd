@@ -26,8 +26,13 @@ const client = new MongoClient(`mongodb://${mongo}/`, {
 });
 
 client.connect().then(
-  () => {
+  (mongoClient) => {
     console.log('mongo connect success');
+
+    // mongoClient.on('connectionPoolCleared', () => {
+    //   mongoClient.connect()
+    // })
+    console.log('mongoClient === client', mongoClient === client);
   },
   (err) => {
     console.log('mongo connect failed');
@@ -46,8 +51,11 @@ app.use((req, res, next) => {
 app.get('/get/:key', async (req, res) => {
   if (req.params.key !== PersistentKey) return res.status(404).json({});
 
-  const data = await client.db('openclash').collection('connections').find({}).sort('id').toArray();
-  return res.json(data ?? null);
+  const [data, length] = await Promise.all([
+    client.db('openclash').collection('connections').find({}).sort('id').limit(1000).toArray(),
+    client.db('openclash').collection('connections').countDocuments({}),
+  ]);
+  return res.json(data ? { data, length } : null);
 });
 
 app.post('/set/:key', async (req, res) => {
@@ -58,7 +66,9 @@ app.post('/set/:key', async (req, res) => {
   // let total = req.body.length;
   // console.log(`req.body.length ${total}`)
   const ret = await Promise.all(
-    (req.body as DataWithId[]).map((d) => collection.updateOne({ id: d.id }, { $setOnInsert: d }, { upsert: true })),
+    (req.body as DataWithId[]).map((d) =>
+      collection.updateOne({ id: d.id }, { $setOnInsert: d }, { upsert: true }),
+    ),
   );
   // const ret = await collection.bulkWrite(
   //   req.body.map(d => ({
