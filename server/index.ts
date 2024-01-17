@@ -26,13 +26,16 @@ const client = new MongoClient(`mongodb://${mongo}/`, {
 });
 
 client.connect().then(
-  (mongoClient) => {
+  () => {
     console.log('mongo connect success');
 
-    // mongoClient.on('connectionPoolCleared', () => {
-    //   mongoClient.connect()
+    // client.on('connectionPoolCleared', () => {
+    //   client.connect()
     // })
-    console.log('mongoClient === client', mongoClient === client);
+
+    client.on('error', () => {
+      client.connect();
+    });
   },
   (err) => {
     console.log('mongo connect failed');

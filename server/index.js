@@ -57,12 +57,14 @@ var client = new mongodb_1.MongoClient("mongodb://".concat(mongo, "/"), {
     authSource: 'admin',
     authMechanism: 'SCRAM-SHA-256',
 });
-client.connect().then(function (mongoClient) {
+client.connect().then(function () {
     console.log('mongo connect success');
-    // mongoClient.on('connectionPoolCleared', () => {
-    //   mongoClient.connect()
+    // client.on('connectionPoolCleared', () => {
+    //   client.connect()
     // })
-    console.log('mongoClient === client', mongoClient === client);
+    client.on('error', function () {
+        client.connect();
+    });
 }, function (err) {
     console.log('mongo connect failed');
     console.log(err);
