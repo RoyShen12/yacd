@@ -83,7 +83,7 @@ function usePersistentConnections<T extends DataWithId[]>(
           recordConnectionId(data, serverExistId.current);
         })
         .catch();
-    }, 30 * 1000);
+    }, 3 * 1000);
 
     return () => {
       clearInterval(interval);
