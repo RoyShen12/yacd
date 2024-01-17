@@ -35,10 +35,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var compression_1 = require("compression");
-var express_1 = require("express");
-var helmet_1 = require("helmet");
+var compression_1 = __importDefault(require("compression"));
+var express_1 = __importDefault(require("express"));
+var helmet_1 = __importDefault(require("helmet"));
 var mongodb_1 = require("mongodb");
 var app = (0, express_1.default)()
     .use(express_1.default.json({ limit: '128mb' }))
