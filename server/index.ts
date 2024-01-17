@@ -68,7 +68,7 @@ app.post('/set/:key', async (req, res) => {
 
   // let total = req.body.length;
   // console.log(`req.body.length ${total}`)
-  const ret = await Promise.all(
+  /* const ret = */ await Promise.all(
     (req.body as DataWithId[]).map((d) =>
       collection.updateOne({ id: d.id }, { $setOnInsert: d }, { upsert: true }),
     ),
@@ -84,18 +84,20 @@ app.post('/set/:key', async (req, res) => {
   // )
   // const newData = new DataModel({ key, data: req.body.data })
   // await newData.save()
+
   // console.log(`Data saved successfully!`)
-  console.log(
-    ret.reduce(
-      (p, c) => {
-        p.modifiedCount += c.modifiedCount;
-        p.upsertedCount += c.upsertedCount;
-        p.matchedCount += c.matchedCount;
-        return p;
-      },
-      { modifiedCount: 0, upsertedCount: 0, matchedCount: 0 },
-    ),
-  );
+
+  // console.log(
+  //   ret.reduce(
+  //     (p, c) => {
+  //       p.modifiedCount += c.modifiedCount;
+  //       p.upsertedCount += c.upsertedCount;
+  //       p.matchedCount += c.matchedCount;
+  //       return p;
+  //     },
+  //     { modifiedCount: 0, upsertedCount: 0, matchedCount: 0 },
+  //   ),
+  // );
   return res.json({ message: `suc` });
 });
 

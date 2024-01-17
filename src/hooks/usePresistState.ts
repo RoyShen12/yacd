@@ -1,4 +1,4 @@
-import { throttle } from 'lodash-es';
+// import { throttle } from 'lodash-es';
 import React from 'react';
 
 import { useApiConfig } from '$src/store/app';
@@ -11,31 +11,35 @@ export const PersistentKey = 'yacd.closedConns';
 const getPersistentKey = `../yacd-persistent-api/get/${PersistentKey}`;
 const setPersistentKey = `../yacd-persistent-api/set/${PersistentKey}`;
 
-const setDataToMongo = throttle(
-  async <T extends DataWithId[]>(
-    secret: string,
-    newValue: T,
-    filter: (v: T[number]) => boolean,
-  ) => {
-    try {
-      const values = newValue.filter(filter);
+const setDataToMongo = async <T extends DataWithId[]>(
+  secret: string,
+  newValue: T,
+  filter: (v: T[number]) => boolean,
+  setRef: Set<string | number>,
+) => {
+  try {
+    const values = newValue.filter(filter);
 
-      if (values.length) {
-        await fetch(setPersistentKey, {
-          method: 'POST',
-          headers: {
-            'x-yacd-auth': secret,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(values),
-        });
+    if (values.length) {
+      const resp = await fetch(setPersistentKey, {
+        method: 'POST',
+        headers: {
+          'x-yacd-auth': secret,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      const ret = await resp.json();
+
+      if (ret.message === 'suc') {
+        values.forEach((d) => setRef.add(d.id));
       }
-    } catch (error) {
-      console.log(error);
     }
-  },
-  1000,
-);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 const recordConnectionId = <T extends DataWithId[]>(data: T, set: Set<string | number>) =>
   data.forEach((d) => set.add(d.id));
@@ -93,7 +97,12 @@ function usePersistentConnections<T extends DataWithId[]>(
   const setValue = React.useCallback((value: T | ((val: T) => T)) => {
     setConnections((prevState) => {
       const newValue = value instanceof Function ? value(prevState) : value;
-      setDataToMongo(apiConfig.secret, newValue, (nv) => !serverExistId.current.has(nv.id));
+      setDataToMongo(
+        apiConfig.secret,
+        newValue,
+        (nv) => !serverExistId.current.has(nv.id),
+        serverExistId.current,
+      );
       return newValue;
     });
   }, []);
