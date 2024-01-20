@@ -33,13 +33,17 @@ client.connect().then(
     //   client.connect()
     // })
 
-    client.on('error', () => {
+    client.on('error', (err) => {
+      console.error(new Date().toLocaleString(), 'mongo on error');
+      console.error(err);
+      console.error(new Date().toLocaleString(), 'try reconnect');
       client.connect();
     });
   },
   (err) => {
-    console.log('mongo connect failed');
-    console.log(err);
+    console.error('mongo connect failed');
+    console.error(err);
+    process.exit(-1);
   },
 );
 
